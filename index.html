@@ -1,0 +1,191 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USB-2C-WALLET - Cold Storage Interface</title>
+  
+<link rel="stylesheet" href="USB-2C-WALLET-Installer-testnet.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 USB-2C-WALLET</h1>
+            <p>Professional Cold Storage Interface - Offline Pi Coin Management</p>
+            <p>GC6AT2DOD3QCRJSNDJJLZDIXQIT53FSK4YKNYMFZ5HVT5HXXHWQEI42UN</p>
+        </div>
+        <div style="margin-bottom: 1em;">
+  <button onclick="toggleDarkMode()">🌙 Dark Mode</button>
+  <button onclick="sincronizarConPiNet()">🔄 Sincronizar con PiNet</button>
+  <button onclick="enviarPayloadAPiNet()">🔐 Validar con PiNet</button>
+  <button onclick="mostrarPerfil()">👤 Ver perfil</button>
+  <div id="perfilUsuario" style="margin-top:1em;"></div>
+  <button onclick="mostrarAppSettings()">⚙️ Ver configuración de la app</button>
+<div id="appSettingsInfo" style="margin-top:1em;"></div>
+
+</div>
+
+<pre id="resultadoSync" style="background:#111;color:#0f0;padding:1em;border-radius:8px;"></pre>
+
+
+        <div class="content">
+            <div class="status secure">
+                ✅ SECURE OFFLINE MODE - Your Pi Coins are safe in cold storage
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('wallet')">💰 Wallet</div>
+                <div class="tab" onclick="showTab('security')">🔐 Security</div>
+                <div class="tab" onclick="showTab('transactions')">📝 Transactions</div>
+                <div class="tab" onclick="showTab('backup')">💾 Backup</div>
+            </div>
+
+            <div id="wallet" class="tab-content active">
+                <div class="section">
+                    <h2>📁 Wallet Management</h2>
+<h3>Balance Total: <span id="balanceDisplay">0π</span></h3>
+<div id="transactionLog">
+  <h3>Transacciones Realizadas</h3>
+</div>
+
+                    <div class="instructions">
+                        <strong>Instructions:</strong>
+                        <ol style="margin-left: 20px; margin-top: 8px;">
+                            <li>Load wallet JSON files from your USB wallets/ folder</li>
+                            <li>View Pi coin details and full image URLs</li>
+                            <li>Download images from URLs when online</li>
+                            <li>Manage your cold storage collection</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="file-input">
+                        <p><strong>Load Wallet Files:</strong></p>
+                        <input type="file" id="walletFiles" multiple accept=".json" />
+                        <button class="button" onclick="loadWallets()">Load Wallets</button>
+                        <!--button class="button" onclick="generateNewWallet()">Generate New Wallet</button-->
+                    </div>
+                    
+                    <div id="walletDisplay" class="wallet-grid">
+                        <!-- Wallets will be displayed here -->
+                    </div>
+                </div>
+            </div>
+<button onclick="guardarHistorialEnUSB()">💾 Guardar historial en USB</button>
+
+            <div id="security" class="tab-content">
+                <div class="section">
+                    <h2>🔐 Security Features</h2>
+                    <div class="security-section">
+                        <h3>🔑 Private Key Management</h3>
+                        <p><strong>Status:</strong> <span id="keyStatus">Not Generated</span></p>
+                        <button class="button" onclick="generateKeys()">Generate New Keys</button>
+                        <button class="button danger" onclick="clearKeys()">Clear Keys</button>
+                        
+                        <div id="keyDisplay" style="display: none;">
+                            <h4>Wallet Address:</h4>
+                            <div class="url" id="walletAddress"></div>
+                            
+                            <h4>Private Key (KEEP SECRET):</h4>
+                            <div class="private-key" id="privateKeyDisplay"></div>
+                            
+                            <h4>QR Code:</h4>
+                            <div class="qr-code" id="qrCode"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="instructions">
+                        <strong>Security Best Practices:</strong>
+                        <ul style="margin-left: 20px; margin-top: 8px;">
+                            <li>Never share your private key</li>
+                            <li>Keep multiple backups in secure locations</li>
+                            <li>Use this wallet offline only</li>
+                            <li>Verify all transactions before signing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="transactions" class="tab-content">
+                <div class="section">
+                    <h2>📝 Transaction Management</h2>
+                    <div class="instructions">
+                        <p><strong>Offline Transaction Signing:</strong></p>
+                        <ol style="margin-left: 20px; margin-top: 8px;">
+                            <li>Create unsigned transaction on online device</li>
+                            <li>Transfer transaction file to USB</li>
+                            <li>Sign transaction offline using this interface</li>
+                            <li>Transfer signed transaction back to online device</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="file-input">
+                        <p><strong>Load Unsigned Transaction:</strong></p>
+                        <input type="file" id="transactionFile" accept=".json" />
+                        <button class="button" onclick="loadTransaction()">Load Transaction</button>
+                    </div>
+                    
+                    <div id="transactionDisplay">
+                        <!-- Transaction details will be displayed here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="backup" class="tab-content">
+                <div class="section">
+                    <h2>💾 Backup & Recovery</h2>
+                    <div class="security-section">
+                        <h3>🌱 Seed Phrase</h3>
+                        <p>Your 12-word recovery phrase:</p>
+                        <div class="seed-phrase" id="seedPhraseDisplay">
+                            Click "Generate Seed Phrase" to create a new recovery phrase
+                        </div>
+                        <button class="button" onclick="generateSeedPhrase()">Generate Seed Phrase</button>
+                        <button class="button" onclick="downloadBackup()">Download Backup</button>
+                    </div>
+                    
+                    <div class="instructions">
+                        <strong>Recovery Instructions:</strong>
+                        <ol style="margin-left: 20px; margin-top: 8px;">
+                            <li>Write down your seed phrase on paper</li>
+                            <li>Store in multiple secure locations</li>
+                            <li>Never store digitally or take photos</li>
+                            <li>Test recovery process before using</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>⚙️ USB Setup</h2>
+                <div class="instructions">
+                    <strong>Required Folder Structure:</strong>
+                    <pre style="background: #f3f4f6; padding: 12px; border-radius: 6px; margin-top: 8px;">
+USB-2C-WALLET/
+├── wallets/          (JSON wallet files)
+├── gallery/user/     (Downloaded images)
+├── keys/             (Private keys - encrypted)
+├── transactions/     (Signed transactions)
+├── backups/          (Recovery backups)
+├── config/           (Configuration)
+├── wallet.html       (This file)
+└── installer.txt     (Setup guide)
+                    </pre>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            Generated by USB-2C-WALLET v2.1 | Professional Cold Storage Solution
+        </div>
+    </div>
+
+<!--1principio-->
+
+
+<script src="scriptnew.js"></script>
+
+<script src="qrcodejs-master/qrcode.min.js"></script>
+</body>
+</html>
+
