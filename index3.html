@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>USB‑2C‑WALLET</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding: 2em;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      margin-bottom: 1em;
+    }
+    .tab {
+      flex: 1;
+      padding: 1em;
+      text-align: center;
+      background: #eee;
+      cursor: pointer;
+      border: 1px solid #ccc;
+    }
+    .tab.active {
+      background: #ddd;
+      font-weight: bold;
+    }
+    .tab-content {
+      display: none;
+      padding: 1em;
+      border: 1px solid #ccc;
+      background: #fafafa;
+    }
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔒 USB‑2C‑WALLET</h1>
+    <p>Cold Storage Interface for Pi Network</p>
+
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('login')">🔐 Login con Pi SDK</div>
+      <div class="tab" onclick="showTab('perfil')">👤 Mostrar perfil real del usuario</div>
+      <div class="tab" onclick="showTab('sync')">🔄 Sincronizar con PiNet</div>
+      <div class="tab" onclick="showTab('validar')">💸 Validar y firmar transacciones</div>
+      <div class="tab" onclick="showTab('historial')">💾 Guardar historial en USB</div>
+      <div class="tab" onclick="showTab('seed')">🌱 Generar y exportar seed phrase</div>
+      <div class="tab" onclick="showTab('enviar')">📤 Enviar Pi desde la app</div>
+      <div class="tab" onclick="showTab('inicio')">🏠 Inicio</div> <!-- NUEVA PESTAÑA -->
+    </div>
+
+    <div id="login" class="tab-content active">
+      <button onclick="conectarWallet()">🔌 Conectar Wallet</button>
+      <div id="perfilUsuario" style="margin-top:1em;"></div>
+    </div>
+    <div id="perfil" class="tab-content"></div>
+    <div id="sync" class="tab-content"></div>
+    <div id="validar" class="tab-content"></div>
+    <div id="historial" class="tab-content"></div>
+    <div id="seed" class="tab-content"></div>
+    <div id="enviar" class="tab-content"></div>
+
+    <!-- NUEVA TAB: INICIO -->
+    <div id="inicio" class="tab-content">
+      <h2>🏠 Perfil Online del Usuario</h2>
+      <iframe 
+        src="https://usbcwallet4654.pinet.com/" 
+        width="100%" 
+        height="600px" 
+        style="border:1px solid #ccc;">
+      </iframe>
+    </div>
+  </div>
+
+  <!-- SDK Pi Network -->
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script>window.Pi && Pi.init({ version: "2.0" });</script>
+
+  <script>
+    function showTab(id) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.querySelector(`.tab[onclick="showTab('${id}')"]`).classList.add('active');
+      document.getElementById(id).classList.add('active');
+    }
+
+    async function conectarWallet() {
+      const perfilDiv = document.getElementById('perfilUsuario');
+      perfilDiv.innerHTML = 'Conectando con PiNet...';
+
+      try {
+        const scopes = ['username', 'wallet_address'];
+        const authResult = await Pi.authenticate(scopes, payment => console.warn("Pago pendiente:", payment));
+
+        if (!authResult || !authResult.accessToken) {
+          perfilDiv.innerHTML = '<p>No user logged</p>';
+          return;
+        }
+
+        perfilDiv.innerHTML = `
+          <h3>👤 Perfil de Usuario</h3>
+          <p><strong>Nombre:</strong> ${authResult.user.username}</p>
+          <p><strong>Wallet:</strong> ${authResult.user.wallet_address}</p>
+        `;
+      } catch (err) {
+        console.error(err);
+        perfilDiv.innerHTML = '<p>No user logged</p>';
+      }
+    }
+  </script>
+
+  <script src="qrcode.min.js"></script>
+</body>
+</html>
