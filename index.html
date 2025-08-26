@@ -5,7 +5,93 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>USB-2C-WALLET - Cold Storage Interface</title>
-  
+    <style>
+        body.dark-mode {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #f1f5f9;
+}
+
+.wallet-card.dark-mode {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid #475569;
+  color: #f1f5f9;
+}
+body.dark-mode {
+  background: linear-gradient(135deg, #0f1115 0%, #1a1d22 100%);
+  color: #e0e0e0;
+}
+
+.container.dark-mode {
+  background-color: #1e2126;
+  color: #f0f0f0;
+  border: 1px solid #2c2f33;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+}
+
+.transaction-entry.dark-mode {
+  background-color: #2a2d32;
+  color: #dcdcdc;
+  border-left: 4px solid #4ade80;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.button.dark-mode {
+  background-color: #3a3f45;
+  color: #f0f0f0;
+  border: 1px solid #555;
+  transition: background-color 0.3s ease;
+}
+
+.button.dark-mode:hover {
+  background-color: #50555c;
+}
+
+.button.dark-mode {
+  background-color: #475569;
+  color: #f1f5f9;
+  border: none;
+}
+body.dark-mode {
+  background: linear-gradient(135deg, #1a1c1f 0%, #2a2d31 100%);
+  color: #e0e0e0;
+}
+.container.dark-mode {
+  background-color: #121212; /* negro profundo pero no absoluto */
+  color: #e0e0e0; /* texto claro y suave */
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  border: 1px solid #2c2c2c;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.wallet-card.dark-mode {
+  background-color: #2f3338;
+  border: 1px solid #3e4349;
+  color: #f0f0f0;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.button.dark-mode {
+  background-color: #3b3f45;
+  color: #f0f0f0;
+  border: 1px solid #555;
+  transition: background-color 0.3s ease;
+}
+
+.button.dark-mode:hover {
+  background-color: #50555c;
+}
+
+.transaction-entry.dark-mode {
+  background-color: #2b2f34;
+  color: #dcdcdc;
+  border-left: 4px solid #4ade80;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+    </style>
 <link rel="stylesheet" href="USB-2C-WALLET-Installer-testnet.css">
 </head>
 <body>
@@ -15,19 +101,7 @@
             <p>Professional Cold Storage Interface - Offline Pi Coin Management</p>
             <p>GC6AT2DOD3QCRJSNDJJLZDIXQIT53FSK4YKNYMFZ5HVT5HXXHWQEI42UN</p>
         </div>
-        <div style="margin-bottom: 1em;">
-  <button onclick="toggleDarkMode()">🌙 Dark Mode</button>
-  <button onclick="sincronizarConPiNet()">🔄 Sincronizar con PiNet</button>
-  <button onclick="enviarPayloadAPiNet()">🔐 Validar con PiNet</button>
-  <button onclick="mostrarPerfil()">👤 Ver perfil</button>
-  <div id="perfilUsuario" style="margin-top:1em;"></div>
-  <button onclick="mostrarAppSettings()">⚙️ Ver configuración de la app</button>
-<div id="appSettingsInfo" style="margin-top:1em;"></div>
-
-</div>
-
-<pre id="resultadoSync" style="background:#111;color:#0f0;padding:1em;border-radius:8px;"></pre>
-
+        <button onclick="toggleDarkMode()">🌙 Dark Mode</button>
 
         <div class="content">
             <div class="status secure">
@@ -181,9 +255,343 @@ USB-2C-WALLET/
     </div>
 
 <!--1principio-->
+<script>
+let loadedWallets = [];
+let currentKeys = null;
+let currentSeedPhrase = null;
+
+function showTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+  document.getElementById(tabName).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function generateKeys() {
+  const privateKey = Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('');
+  const address = 'pi1' + privateKey.substring(0, 39);
+  currentKeys = { privateKey, address };
+  document.getElementById('keyStatus').textContent = 'Generated';
+  document.getElementById('walletAddress').textContent = address;
+  document.getElementById('privateKeyDisplay').textContent = privateKey;
+  const qrContainer = document.getElementById('qrCode');
+  qrContainer.innerHTML = "";
+  new QRCode(qrContainer, { text: address, width: 128, height: 128, correctLevel: QRCode.CorrectLevel.H });
+  document.getElementById('keyDisplay').style.display = 'block';
+}
+
+function clearKeys() {
+  if (confirm('Are you sure you want to clear all keys? This cannot be undone!')) {
+    currentKeys = null;
+    document.getElementById('keyStatus').textContent = 'Not Generated';
+    document.getElementById('keyDisplay').style.display = 'none';
+    document.getElementById('qrCode').innerHTML = "";
+  }
+}
+
+function generateSeedPhrase() {
+  const words = ['abandon','ability','able','about','above','absent','absorb','abstract','absurd','abuse','access','accident'];
+  const seedWords = [];
+  for (let i = 0; i < 12; i++) seedWords.push(words[Math.floor(Math.random() * words.length)]);
+  currentSeedPhrase = seedWords.join(' ');
+  document.getElementById('seedPhraseDisplay').textContent = currentSeedPhrase;
+}
+
+function downloadBackup() {
+  if (!currentKeys || !currentSeedPhrase) {
+    alert('Please generate keys and seed phrase first');
+    return;
+  }
+  const backup = {
+    timestamp: new Date().toISOString(),
+    address: currentKeys.address,
+    seedPhrase: currentSeedPhrase,
+    version: '2.1'
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'wallet-backup-' + Date.now() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+<!--1final-->
+<!--2principio-->
+function loadWallets() {
+  const fileInput = document.getElementById('walletFiles');
+  const files = fileInput.files;
+  if (files.length === 0) {
+    alert('Please select wallet JSON files');
+    return;
+  }
+  loadedWallets = [];
+  const walletDisplay = document.getElementById('walletDisplay');
+  walletDisplay.innerHTML = '';
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const wallet = JSON.parse(e.target.result);
+        loadedWallets.push(wallet);
+        displayWallet(wallet);
+        updateBalance();
+      } catch (error) {
+        console.error('Error parsing wallet file:', file.name, error);
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+function displayWallet(wallet) {
+  const walletDisplay = document.getElementById('walletDisplay');
+  const walletCard = document.createElement('div');
+  walletCard.className = 'wallet-card';
+
+  const isSigned = wallet.signature && wallet.signature.startsWith("sig_");
+  const buttonColor = isSigned ? "green" : "red";
+  const buttonText = isSigned ? "🔁 Devolver Imagen Minteada" : "🔒 Firma requerida para devolver";
+  const buttonDisabled = isSigned ? "" : "disabled";
+
+  walletCard.innerHTML = `
+    <h3>${wallet.name || 'Unknown'}</h3>
+    <p><strong>Value:</strong> <span class="value">${wallet.value || 0}π</span></p>
+    <p><strong>Date:</strong> ${wallet.date || 'Unknown'}</p>
+    <p><strong>Network:</strong> ${wallet.network || 'Unknown'}</p>
+    <p><strong>Image URL:</strong></p>
+    <div class="url">${wallet.imageURL || 'No URL'}</div>
+    <button class="button" onclick="downloadImage('${wallet.imageURL}', '${wallet.name}')">Download Image</button>
+    <button class="button" onclick="copyURL('${wallet.imageURL}')">Copy URL</button>
+    <button class="button" onclick="signWallet('${wallet.id}')">Sign Wallet</button>
+    <button class="button" style="background-color: ${buttonColor};" ${buttonDisabled}
+      onclick="unmintWallet('${wallet.id}', '${wallet.imageURL}', ${wallet.value})">
+      ${buttonText}
+    </button>
+  `;
+  walletDisplay.appendChild(walletCard);
+}
+
+function updateBalance() {
+  const total = loadedWallets.reduce((sum, wallet) => sum + (wallet.value || 0), 0);
+  document.getElementById('balanceDisplay').textContent = total.toFixed(2) + 'π';
+}
+<!--2final-->
+<!--3principio-->
+function downloadImage(url, filename) {
+  if (!url) {
+    alert('No URL available for this image');
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'pi-coin-image';
+  a.target = '_blank';
+  a.click();
+}
+
+function copyURL(url) {
+  navigator.clipboard.writeText(url).then(() => {
+    alert('URL copied to clipboard!');
+  });
+}
+
+function signWallet(walletId) {
+  if (!currentKeys) {
+    alert('Please generate keys first in the Security tab');
+    return;
+  }
+  const signature = 'sig_' + Math.random().toString(36).substring(2, 15);
+  alert('Wallet signed with signature: ' + signature);
+  const wallet = loadedWallets.find(w => w.id === walletId);
+  if (wallet) {
+    wallet.signature = signature;
+    displayWallet(wallet);
+    updateBalance();
+  }
+}
+
+function unmintWallet(walletId, imageURL, amount) {
+  if (!currentKeys) {
+    alert("Please generate keys first in the Security tab.");
+    return;
+  }
+
+  const transaction = {
+    action: "unmint",
+    walletId: walletId,
+    imageURL: imageURL,
+    from: currentKeys.address,
+    amount: amount,
+    timestamp: new Date().toISOString(),
+    signature: "sig_" + Math.random().toString(36).substring(2, 15)
+  };
+
+  alert("✅ Imagen marcada para devolución. Transacción registrada en el historial.");
+
+  loadedWallets = loadedWallets.filter(w => w.id !== walletId);
+  document.getElementById('walletDisplay').innerHTML = '';
+  loadedWallets.forEach(displayWallet);
+  updateBalance();
+
+  const logEntry = document.createElement('div');
+  logEntry.className = 'transaction-entry';
+
+  const text = `✅ ${amount}π devueltos por imagen ${walletId} el ${new Date().toLocaleString()} | Dirección: ${transaction.from} | Firma: ${transaction.signature}`;
+
+  logEntry.innerHTML = `
+    <span>${text} 💾</span>
+    <button onclick="borrarEntrada(this)">🗑️</button>
+    <button onclick="descargarEntrada('${text}')">💾</button>
+  `;
+
+  document.getElementById('transactionLog').appendChild(logEntry);
+}
+
+function borrarEntrada(button) {
+  const entry = button.parentElement;
+  entry.remove();
+}
+
+function descargarEntrada(texto) {
+  const blob = new Blob([texto], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "transaccion-" + Date.now() + ".txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+<!--3final-->
+<!--4principio-->
+function loadTransaction() {
+  const fileInput = document.getElementById('transactionFile');
+  const file = fileInput.files[0];
+  if (!file) {
+    alert('Please select a transaction file');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const transaction = JSON.parse(e.target.result);
+      displayTransaction(transaction);
+    } catch (error) {
+      alert('Error parsing transaction file');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function displayTransaction(transaction) {
+  const display = document.getElementById('transactionDisplay');
+  display.innerHTML = `
+    <div class="wallet-card">
+      <h3>Transaction Details</h3>
+      <p><strong>To:</strong> ${transaction.to || 'Unknown'}</p>
+      <p><strong>Amount:</strong> ${transaction.amount || 0}π</p>
+      <p><strong>Fee:</strong> ${transaction.fee || 0}π</p>
+      <button class="button" onclick="signTransaction()">Sign Transaction</button>
+      <button class="button" onclick="rejectTransaction()">Reject</button>
+    </div>
+  `;
+}
+
+function signTransaction() {
+  if (!currentKeys) {
+    alert('Please generate keys first');
+    return;
+  }
+  alert('Transaction signed successfully!');
+}
+
+function rejectTransaction() {
+  document.getElementById('transactionDisplay').innerHTML = '';
+  alert('Transaction rejected');
+}
+
+window.onload = function() {
+  console.log('USB-2C-WALLET Professional Interface Loaded');
+};
+
+function guardarHistorialEnUSB() {
+  const entries = document.querySelectorAll('.transaction-entry');
+  if (entries.length === 0) {
+    alert("No hay transacciones para guardar.");
+    return;
+  }
+
+  const transacciones = Array.from(entries).map(entry => ({
+    texto: entry.textContent.trim()
+  }));
+
+  fetch('http://localhost:3001/guardar-historial', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transacciones })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'ok') {
+      alert(data.mensaje);
+    } else {
+      alert('Error al guardar el historial.');
+    }
+  })
+  .catch(err => {
+    console.error('Error al conectar con el backend:', err);
+    alert('No se pudo guardar el historial en el USB.');
+  });
+}
+function guardarHistorialEnUSB() {
+  const entries = document.querySelectorAll('.transaction-entry');
+  if (entries.length === 0) {
+    alert("No hay transacciones para guardar.");
+    return;
+  }
+
+  const transacciones = Array.from(entries).map(entry => ({
+    texto: entry.textContent.trim()
+  }));
+
+  fetch('http://localhost:3001/api/guardar-historial', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transacciones })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'ok') {
+      alert(data.mensaje);
+    } else {
+      alert('Error al guardar el historial.');
+    }
+  })
+  .catch(err => {
+    console.error('Error al conectar con el backend:', err);
+    alert('No se pudo guardar el historial en el USB.');
+  });
+}
 
 
-<script src="scriptnew.js"></script>
+function toggleDarkMode() {
+  document.body.classList.toggle('dark-mode');
+
+  document.querySelectorAll(
+    '.wallet-card, .container, .transaction-entry, .button'
+  ).forEach(el => el.classList.toggle('dark-mode'));
+}
+
+
+
+
+
+</script>
+<!--4final-->
+
+
+
+
+
 
 <script src="qrcodejs-master/qrcode.min.js"></script>
 </body>
